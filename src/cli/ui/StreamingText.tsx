@@ -3,7 +3,14 @@ import { Text } from 'ink';
 import { marked } from 'marked';
 import markedTerminal from 'marked-terminal';
 
-marked.use(markedTerminal());
+let markedInitialized = false;
+
+function ensureMarked(): void {
+  if (!markedInitialized) {
+    marked.use(markedTerminal());
+    markedInitialized = true;
+  }
+}
 
 interface StreamingTextProps {
   chunks: string[];
@@ -11,17 +18,12 @@ interface StreamingTextProps {
 
 export const StreamingText: React.FC<StreamingTextProps> = ({ chunks }) => {
   const fullText = useMemo(() => chunks.join(''), [chunks]);
-  const rendered = useMemo(() => {
-    try {
-      return marked.parse(fullText) as string;
-    } catch {
-      return fullText;
-    }
-  }, [fullText]);
+  const rendered = useMemo(() => renderMarkdown(fullText), [fullText]);
   return <Text>{rendered}</Text>;
 };
 
 export function renderMarkdown(text: string): string {
+  ensureMarked();
   try {
     return marked.parse(text) as string;
   } catch {
