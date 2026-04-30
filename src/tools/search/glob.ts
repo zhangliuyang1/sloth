@@ -44,15 +44,46 @@ async function getFilesRecursive(dir: string, prefix: string = ''): Promise<stri
   return files;
 }
 
-function globMatch(pattern: string, filePath: string): boolean {
-  const regexStr = pattern
-    .replace(/\*\*/g, '§§')
-    .replace(/\*/g, '[^/]*')
-    .replace(/§§/g, '.*')
-    .replace(/\?/g, '[^/]')
-    .replace(/\.(?![*])/g, '\.')
-    .replace(/\{([^}]+)\}/g, (_, group) => `(${group.split(',').join('|')})`);
-  return new RegExp(`^${regexStr}$`).test(filePath);
+const REGEX_SPECIALS = new Set(['.', '+', '^', '$', '{', '}', '|', '(', ')', '[', ']', '\\']);
+
+function globToRegex(pattern: string): RegExp {
+  let regexStr = '';
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === '*' && pattern[i + 1] === '*') {
+      if (pattern[i + 2] === '/') {
+        regexStr += '(?:.+/)?';
+        i += 3;
+      } else {
+        regexStr += '.*';
+        i += 2;
+      }
+    } else if (ch === '*') {
+      regexStr += '[^/]*';
+      i++;
+    } else if (ch === '?') {
+      regexStr += '[^/]';
+      i++;
+    } else if (ch === '{') {
+      const end = pattern.indexOf('}', i);
+      if (end !== -1) {
+        const group = pattern.slice(i + 1, end);
+        regexStr += `(${group.split(',').join('|')})`;
+        i = end + 1;
+      } else {
+        regexStr += '\\{';
+        i++;
+      }
+    } else if (REGEX_SPECIALS.has(ch)) {
+      regexStr += '\\' + ch;
+      i++;
+    } else {
+      regexStr += ch;
+      i++;
+    }
+  }
+  return new RegExp(`^${regexStr}$`);
 }
 
 export const globExecutor: ToolExecutor = {
@@ -62,7 +93,8 @@ export const globExecutor: ToolExecutor = {
 
     try {
       const allFiles = await getFilesRecursive(searchPath);
-      const matched = allFiles.filter(f => globMatch(pattern, f));
+      const regex = globToRegex(pattern);
+      const matched = allFiles.filter(f => regex.test(f));
 
       if (matched.length === 0) {
         return { output: 'No files matched the pattern' };

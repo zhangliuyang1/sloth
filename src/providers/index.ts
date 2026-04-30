@@ -23,12 +23,12 @@ export const PRESETS: Record<string, ProviderConfig> = {
 
 export function createProvider(presetName: string, apiKey: string, modelOverride?: string): LLMProvider {
   const preset = PRESETS[presetName];
-  if (!preset) throw new Error(`Unknown provider preset: ${presetName}. Available: ${Object.keys(PRESETS).join(', ')}`);
+  if (!preset) throw new Error(`Unknown provider: ${presetName}. Available: ${Object.keys(PRESETS).join(', ')}`);
 
   const model = modelOverride || preset.model;
 
   if (preset.type === 'anthropic') {
-    return new AnthropicProvider({ apiKey, model });
+    return new AnthropicProvider({ apiKey, model, baseURL: preset.baseURL });
   }
 
   return new OpenAICompatProvider({

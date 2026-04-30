@@ -6,8 +6,11 @@ export class AnthropicProvider implements LLMProvider {
   readonly model: string;
   private client: Anthropic;
 
-  constructor(config: { apiKey: string; model: string }) {
-    this.client = new Anthropic({ apiKey: config.apiKey });
+  constructor(config: { apiKey: string; model: string; baseURL?: string }) {
+    this.client = new Anthropic({
+      apiKey: config.apiKey,
+      baseURL: config.baseURL,
+    });
     this.model = config.model;
   }
 
