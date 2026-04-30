@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import type { LLMProvider, StreamEvent, ChatParams, Message, ContentBlock, ToolDef } from './types.js';
+import { countTokens } from '../core/tokenizer.js';
 
 export class OpenAICompatProvider implements LLMProvider {
   readonly name: string;
@@ -84,7 +85,7 @@ export class OpenAICompatProvider implements LLMProvider {
   }
 
   async countTokens(text: string): Promise<number> {
-    return Math.ceil(text.length / 4);
+    return countTokens(text);
   }
 
   convertMessage(msg: Message): OpenAI.ChatCompletionMessageParam[] {

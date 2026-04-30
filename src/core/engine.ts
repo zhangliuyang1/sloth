@@ -5,6 +5,8 @@ import { Conversation } from './conversation.js';
 import { buildSystemPrompt, type SystemPromptContext } from './system-prompt.js';
 import { LoopGuard } from './loop-guard.js';
 import type { PermissionManager } from '../permissions/manager.js';
+import { loadProjectInstructions } from './instructions.js';
+import type { UsageStats } from './pricing.js';
 
 export interface EngineConfig {
   cwd: string;
@@ -31,6 +33,8 @@ export class Engine {
   private abortSignal?: AbortSignal;
   private textCallback?: (text: string) => void;
   private toolCallCallback?: (name: string, status: 'start' | 'end', detail?: string) => void;
+  private usageCallback?: (stats: UsageStats) => void;
+  private totalUsage: UsageStats = { inputTokens: 0, outputTokens: 0, cost: 0 };
 
   constructor(config: EngineConfig) {
     this.cwd = config.cwd;
@@ -49,6 +53,18 @@ export class Engine {
 
   onToolCall(cb: (name: string, status: 'start' | 'end', detail?: string) => void): void {
     this.toolCallCallback = cb;
+  }
+
+  onUsage(cb: (stats: UsageStats) => void): void {
+    this.usageCallback = cb;
+  }
+
+  getUsageStats(): UsageStats {
+    return { ...this.totalUsage };
+  }
+
+  clearConversation(): void {
+    this.conversation.clear();
   }
 
   switchProvider(provider: LLMProvider): void {
@@ -109,6 +125,11 @@ export class Engine {
               toolCalls.push({ id: event.id, name: event.name, args: event.args });
               break;
             }
+            case 'usage':
+              this.totalUsage.inputTokens += event.input_tokens;
+              this.totalUsage.outputTokens += event.output_tokens;
+              this.usageCallback?.({ ...this.totalUsage });
+              break;
             case 'done':
               break;
           }
@@ -183,7 +204,7 @@ export class Engine {
       cwd: this.cwd,
       platform: process.platform,
       shell: process.env.SHELL ?? process.env.COMSPEC ?? 'unknown',
-      projectInstructions: '',
+      projectInstructions: loadProjectInstructions(this.cwd),
       memoryFiles: [],
     };
     return buildSystemPrompt(ctx);

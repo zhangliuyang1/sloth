@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { LLMProvider, StreamEvent, ChatParams, Message, ToolDef } from './types.js';
+import { countTokens } from '../core/tokenizer.js';
 
 export class AnthropicProvider implements LLMProvider {
   readonly name = 'anthropic';
@@ -70,7 +71,7 @@ export class AnthropicProvider implements LLMProvider {
   }
 
   async countTokens(text: string): Promise<number> {
-    return Math.ceil(text.length / 4);
+    return countTokens(text);
   }
 
   private convertMessage(msg: Message): Anthropic.MessageParam {
