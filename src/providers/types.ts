@@ -31,6 +31,7 @@ export interface ChatParams {
   tools: ToolDef[];
   maxTokens: number;
   temperature?: number;
+  thinkingEffort?: 'low' | 'medium' | 'high';
 }
 
 export interface LLMProvider {
@@ -45,4 +46,6 @@ export interface ProviderConfig {
   apiKey?: string;
   baseURL?: string;
   model: string;
+  thinkingEffort?: 'low' | 'medium' | 'high';
+  maxTokens?: number;
 }

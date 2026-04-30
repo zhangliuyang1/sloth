@@ -21,14 +21,18 @@ export const PRESETS: Record<string, ProviderConfig> = {
   openai: { type: 'openai-compat', baseURL: 'https://api.openai.com/v1', model: 'gpt-4o' },
 };
 
-export function createProvider(presetName: string, apiKey: string, modelOverride?: string): LLMProvider {
-  const preset = PRESETS[presetName];
+export function isPreset(name: string): boolean {
+  return name in PRESETS;
+}
+
+export function createProvider(presetName: string, apiKey: string, modelOverride?: string, resolvedConfig?: ProviderConfig): LLMProvider {
+  const preset = resolvedConfig ?? PRESETS[presetName];
   if (!preset) throw new Error(`Unknown provider: ${presetName}. Available: ${Object.keys(PRESETS).join(', ')}`);
 
   const model = modelOverride || preset.model;
 
   if (preset.type === 'anthropic') {
-    return new AnthropicProvider({ apiKey, model, baseURL: preset.baseURL });
+    return new AnthropicProvider({ apiKey, model, baseURL: preset.baseURL, thinkingEffort: preset.thinkingEffort });
   }
 
   return new OpenAICompatProvider({
@@ -36,5 +40,6 @@ export function createProvider(presetName: string, apiKey: string, modelOverride
     baseURL: preset.baseURL!,
     model,
     name: presetName,
+    thinkingEffort: preset.thinkingEffort,
   });
 }

@@ -6,13 +6,14 @@ import { createDefaultToolRegistry } from '../tools/index.js';
 import { PermissionManager } from '../permissions/manager.js';
 import { PermissionStore } from '../permissions/store.js';
 import type { LLMProvider } from '../providers/types.js';
-import type { PermissionChoice } from '../permissions/types.js';
+import type { SlothConfig } from '../core/config.js';
 
 export interface REPLConfig {
   cwd: string;
   provider: LLMProvider;
   providerName: string;
   modelName: string;
+  config: SlothConfig;
 }
 
 export function startREPL(config: REPLConfig): void {
@@ -27,9 +28,7 @@ export function startREPL(config: REPLConfig): void {
     permissionManager,
   });
 
-  // Wire up approval callback so PermissionManager prompts via UI
-  const approvalCallback = async (_toolName: string, _detail: string): Promise<PermissionChoice> => {
-    // Default to allow in non-interactive or when UI can't prompt
+  const approvalCallback = async (_toolName: string, _detail: string): Promise<'allow_once'> => {
     return 'allow_once';
   };
 
@@ -39,5 +38,6 @@ export function startREPL(config: REPLConfig): void {
     engine,
     providerName: config.providerName,
     modelName: config.modelName,
+    initialConfig: config.config,
   }));
 }

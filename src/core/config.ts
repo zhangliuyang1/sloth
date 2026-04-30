@@ -2,14 +2,26 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 import dotenv from 'dotenv';
+import type { ProviderConfig } from '../providers/types.js';
+import { PRESETS } from '../providers/index.js';
 
-// Load .env file if present
 dotenv.config();
+
+export interface ProviderEntry {
+  apiKey?: string;
+  model?: string;
+  baseURL?: string;
+  type?: 'anthropic' | 'openai-compat';
+  thinkingEffort?: 'low' | 'medium' | 'high';
+  maxTokens?: number;
+}
 
 export interface SlothConfig {
   provider: string;
   model?: string;
-  providers: Record<string, { apiKey?: string; model?: string; baseURL?: string }>;
+  thinkingEffort?: 'low' | 'medium' | 'high';
+  maxTokens?: number;
+  providers: Record<string, ProviderEntry>;
 }
 
 const DEFAULT_CONFIG: SlothConfig = {
@@ -26,6 +38,13 @@ export async function loadConfig(configPath?: string): Promise<SlothConfig> {
   } catch {
     return { ...DEFAULT_CONFIG };
   }
+}
+
+export async function saveConfig(config: SlothConfig): Promise<void> {
+  const dir = path.join(os.homedir(), '.sloth');
+  await fs.mkdir(dir, { recursive: true });
+  const filePath = path.join(dir, 'config.json');
+  await fs.writeFile(filePath, JSON.stringify(config, null, 2), 'utf-8');
 }
 
 export function resolveApiKey(config: SlothConfig, providerName: string): string {
@@ -46,4 +65,31 @@ export function resolveApiKey(config: SlothConfig, providerName: string): string
   if (envKey && process.env[envKey]) return process.env[envKey]!;
 
   throw new Error(`No API key for "${providerName}". Set ${envMap[providerName] ?? 'API_KEY'} or add to ~/.sloth/config.json`);
+}
+
+export function resolveProviderConfig(name: string, config: SlothConfig): ProviderConfig {
+  const preset = PRESETS[name];
+  const custom = config.providers[name];
+
+  if (!preset && !custom?.type) {
+    const available = [...Object.keys(PRESETS), ...Object.keys(config.providers).filter(k => config.providers[k].type)];
+    throw new Error(`Unknown provider: ${name}. Available: ${available.join(', ')}`);
+  }
+
+  const base: ProviderConfig = preset ?? { type: custom!.type!, model: '' };
+
+  return {
+    ...base,
+    model: custom?.model ?? base.model,
+    baseURL: custom?.baseURL ?? base.baseURL,
+    apiKey: custom?.apiKey,
+    thinkingEffort: custom?.thinkingEffort ?? config.thinkingEffort,
+    maxTokens: custom?.maxTokens ?? config.maxTokens,
+  };
+}
+
+export function getAllProviderNames(config: SlothConfig): string[] {
+  const presetNames = Object.keys(PRESETS);
+  const customNames = Object.keys(config.providers).filter(k => config.providers[k].type);
+  return [...new Set([...presetNames, ...customNames])];
 }

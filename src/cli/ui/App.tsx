@@ -5,17 +5,21 @@ import { InputArea } from './InputArea.js';
 import { StatusBar } from './StatusBar.js';
 import { ToolSpinner } from './ToolSpinner.js';
 import { ToolApproval } from './ToolApproval.js';
+import { ConfigPanel } from './ConfigPanel.js';
 import { parseInput } from '../../commands/parser.js';
 import { getHelpText } from '../../commands/builtins.js';
 import { calculateCost, type UsageStats } from '../../core/pricing.js';
 import type { PermissionChoice } from '../../permissions/types.js';
 import type { Engine } from '../../core/engine.js';
+import type { SlothConfig } from '../../core/config.js';
+import { resolveApiKey, resolveProviderConfig, getAllProviderNames } from '../../core/config.js';
+import { createProvider } from '../../providers/index.js';
 
 interface AppProps {
   engine: Engine;
   providerName: string;
   modelName: string;
-  onApprovalRequest?: (toolName: string, detail: string) => Promise<PermissionChoice>;
+  initialConfig: SlothConfig;
 }
 
 interface UIMessage {
@@ -23,14 +27,17 @@ interface UIMessage {
   text: string;
 }
 
-export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApprovalRequest }) => {
+export const App: React.FC<AppProps> = ({ engine, providerName, modelName, initialConfig }) => {
   const { exit } = useApp();
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentTool, setCurrentTool] = useState<string | null>(null);
   const [usage, setUsage] = useState<UsageStats>({ inputTokens: 0, outputTokens: 0, cost: 0 });
+  const [config, setConfig] = useState<SlothConfig>(initialConfig);
+  const [activeProviderName, setActiveProviderName] = useState(providerName);
+  const [activeModelName, setActiveModelName] = useState(modelName);
+  const [showConfig, setShowConfig] = useState(false);
 
-  // Permission approval state
   const [pendingApproval, setPendingApproval] = useState<{
     toolName: string;
     detail: string;
@@ -51,18 +58,15 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApp
     });
 
     engine.onToolCall((name, status) => {
-      if (status === 'start') {
-        setCurrentTool(name);
-      } else {
-        setCurrentTool(null);
-      }
+      if (status === 'start') setCurrentTool(name);
+      else setCurrentTool(null);
     });
 
     engine.onUsage((stats) => {
-      const cost = calculateCost(modelName, stats.inputTokens, stats.outputTokens);
+      const cost = calculateCost(activeModelName, stats.inputTokens, stats.outputTokens);
       setUsage({ ...stats, cost });
     });
-  }, [engine, modelName]);
+  }, [engine, activeModelName]);
 
   const handleApprovalChoice = useCallback((choice: PermissionChoice) => {
     if (pendingApproval) {
@@ -71,12 +75,22 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApp
     }
   }, [pendingApproval]);
 
-  // Wire up approval callback to permission manager
-  React.useEffect(() => {
-    if (onApprovalRequest) {
-      // Already wired via repl.tsx
+  const switchModel = useCallback(async (name: string, modelOverride?: string) => {
+    try {
+      const resolved = resolveProviderConfig(name, config);
+      const apiKey = resolveApiKey(config, name);
+      const model = modelOverride ?? resolved.model;
+      const provider = createProvider(name, apiKey, model, { ...resolved, model });
+
+      engine.switchProvider(provider);
+      setActiveProviderName(name);
+      setActiveModelName(model);
+      setMessages(prev => [...prev, { role: 'system', text: `已切换到: ${name} / ${model}` }]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setMessages(prev => [...prev, { role: 'system', text: `切换失败: ${msg}` }]);
     }
-  }, [onApprovalRequest]);
+  }, [config, engine]);
 
   const handleSubmit = useCallback(async (input: string) => {
     const parsed = parseInput(input);
@@ -109,18 +123,27 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApp
           return;
         }
 
+        case 'config': {
+          setShowConfig(true);
+          return;
+        }
+
         case 'model': {
           if (!args) {
-            setMessages(prev => [...prev, { role: 'system', text: `当前模型: ${modelName}` }]);
+            setMessages(prev => [...prev, {
+              role: 'system',
+              text: `当前: ${activeProviderName} / ${activeModelName}\n可用 provider: ${getAllProviderNames(config).join(', ')}\n用法: /model <provider> [model]`,
+            }]);
             return;
           }
-          setMessages(prev => [...prev, { role: 'system', text: `切换模型功能需要在启动时通过 -m 参数指定` }]);
+          const parts = args.trim().split(/\s+/);
+          await switchModel(parts[0], parts[1]);
           return;
         }
 
         case 'cost': {
           const stats = engine.getUsageStats();
-          const cost = calculateCost(modelName, stats.inputTokens, stats.outputTokens);
+          const cost = calculateCost(activeModelName, stats.inputTokens, stats.outputTokens);
           setMessages(prev => [...prev, {
             role: 'system',
             text: `Token 使用统计:\n  输入: ${stats.inputTokens.toLocaleString()} tokens\n  输出: ${stats.outputTokens.toLocaleString()} tokens\n  费用: $${cost.toFixed(4)}`,
@@ -145,13 +168,30 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApp
     }
 
     setIsRunning(false);
-  }, [engine, exit, modelName]);
+  }, [engine, exit, activeProviderName, activeModelName, config, switchModel]);
 
   useInput((_input, key) => {
-    if (key.ctrl && _input === 'c') {
-      exit();
-    }
+    if (key.ctrl && _input === 'c') exit();
   });
+
+  const handleConfigSaved = useCallback((updated: SlothConfig) => {
+    setConfig(updated);
+  }, []);
+
+  const handleConfigClose = useCallback(() => {
+    setShowConfig(false);
+  }, []);
+
+  // Config mode — ConfigPanel handles its own input via useInput
+  if (showConfig) {
+    return (
+      <ConfigPanel
+        config={config}
+        onConfigSaved={handleConfigSaved}
+        onClose={handleConfigClose}
+      />
+    );
+  }
 
   return (
     <Box flexDirection="column" padding={1}>
@@ -173,7 +213,7 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, onApp
         />
       )}
 
-      <StatusBar provider={providerName} model={modelName} tokens={{ input: usage.inputTokens, output: usage.outputTokens }} cost={usage.cost} />
+      <StatusBar provider={activeProviderName} model={activeModelName} tokens={{ input: usage.inputTokens, output: usage.outputTokens }} cost={usage.cost} />
       {!pendingApproval && <InputArea onSubmit={handleSubmit} isRunning={isRunning} />}
     </Box>
   );

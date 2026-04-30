@@ -2,22 +2,36 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { LLMProvider, StreamEvent, ChatParams, Message, ToolDef } from './types.js';
 import { countTokens } from '../core/tokenizer.js';
 
+const THINKING_BUDGET: Record<string, number> = {
+  low: 2048,
+  medium: 8192,
+  high: 16384,
+};
+
 export class AnthropicProvider implements LLMProvider {
   readonly name = 'anthropic';
   readonly model: string;
   private client: Anthropic;
+  private thinkingEffort?: 'low' | 'medium' | 'high';
 
-  constructor(config: { apiKey: string; model: string; baseURL?: string }) {
+  constructor(config: { apiKey: string; model: string; baseURL?: string; thinkingEffort?: 'low' | 'medium' | 'high' }) {
     this.client = new Anthropic({
       apiKey: config.apiKey,
       baseURL: config.baseURL,
     });
     this.model = config.model;
+    this.thinkingEffort = config.thinkingEffort;
   }
 
   async *chat(params: ChatParams): AsyncIterable<StreamEvent> {
     const messages = params.messages.map(this.convertMessage);
     const tools = params.tools.length ? params.tools.map(this.convertToolDef) : undefined;
+
+    const effort = params.thinkingEffort ?? this.thinkingEffort;
+    const thinkingConfig = effort ? {
+      type: 'enabled' as const,
+      budget_tokens: THINKING_BUDGET[effort] ?? THINKING_BUDGET.medium,
+    } : undefined;
 
     const stream = this.client.messages.stream({
       model: this.model,
@@ -25,6 +39,7 @@ export class AnthropicProvider implements LLMProvider {
       messages,
       tools,
       max_tokens: params.maxTokens,
+      ...(thinkingConfig ? { thinking: thinkingConfig } : {}),
     });
 
     let currentToolCall: { id: string; name: string; args: string } | null = null;

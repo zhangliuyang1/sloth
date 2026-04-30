@@ -6,14 +6,16 @@ export class OpenAICompatProvider implements LLMProvider {
   readonly name: string;
   readonly model: string;
   private client: OpenAI;
+  private thinkingEffort?: 'low' | 'medium' | 'high';
 
-  constructor(config: { apiKey?: string; baseURL: string; model: string; name?: string }) {
+  constructor(config: { apiKey?: string; baseURL: string; model: string; name?: string; thinkingEffort?: 'low' | 'medium' | 'high' }) {
     this.client = new OpenAI({
       apiKey: config.apiKey || 'unused',
       baseURL: config.baseURL,
     });
     this.model = config.model;
     this.name = config.name || 'openai-compat';
+    this.thinkingEffort = config.thinkingEffort;
   }
 
   async *chat(params: ChatParams): AsyncIterable<StreamEvent> {
@@ -21,13 +23,16 @@ export class OpenAICompatProvider implements LLMProvider {
     openaiMsgs.unshift({ role: 'system', content: params.system });
     const tools = params.tools.length ? params.tools.map(this.convertToolDef) : undefined;
 
+    const effort = params.thinkingEffort ?? this.thinkingEffort;
+
     const stream = await this.client.chat.completions.create({
       model: this.model,
       messages: openaiMsgs as OpenAI.ChatCompletionMessageParam[],
       tools,
       max_tokens: params.maxTokens,
       stream: true,
-    });
+      ...(effort ? { reasoning_effort: effort } : {}),
+    } as OpenAI.ChatCompletionCreateParamsStreaming);
 
     const toolAccumulators = new Map<number, { id: string; name: string; args: string }>();
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createRequire } from 'module';
 import { startREPL } from './cli/repl.js';
-import { loadConfig, resolveApiKey } from './core/config.js';
+import { loadConfig, resolveApiKey, resolveProviderConfig } from './core/config.js';
 import { createProvider } from './providers/index.js';
 import { createDefaultToolRegistry } from './tools/index.js';
 import { PermissionManager } from './permissions/manager.js';
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
       console.log(`Usage: sloth [options]
 
 Options:
-  --provider, -p <name>   Provider (glm, deepseek, qwen, doubao, mimo, anthropic, openai)
+  --provider, -p <name>   Provider name (preset or custom from config)
   --model, -m <model>     Model name override
   --prompt <text>         Run a single prompt and exit (non-interactive)
   --version, -v           Show version
@@ -43,10 +43,12 @@ Options:
   const resolved = providerName ?? config.provider;
 
   try {
+    const providerConfig = resolveProviderConfig(resolved, config);
     const apiKey = resolveApiKey(config, resolved);
-    const provider = createProvider(resolved, apiKey, modelOverride ?? config.providers[resolved]?.model);
+    const model = modelOverride ?? config.providers[resolved]?.model ?? providerConfig.model;
+    const provider = createProvider(resolved, apiKey, model, providerConfig);
 
-    // Non-interactive mode: run single prompt and exit
+    // Non-interactive mode
     if (prompt) {
       const toolRegistry = createDefaultToolRegistry();
       const permissionManager = new PermissionManager(new PermissionStore());
@@ -72,6 +74,7 @@ Options:
       provider,
       providerName: resolved,
       modelName: provider.model,
+      config,
     });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
