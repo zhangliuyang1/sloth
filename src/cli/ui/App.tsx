@@ -13,7 +13,7 @@ import type { PermissionChoice } from '../../permissions/types.js';
 import type { Engine } from '../../core/engine.js';
 import type { SlothConfig } from '../../core/config.js';
 import { resolveApiKey, resolveProviderConfig, getAllProviderNames } from '../../core/config.js';
-import { createProvider } from '../../providers/index.js';
+import { createProvider, PRESETS, isPreset } from '../../providers/index.js';
 
 interface AppProps {
   engine: Engine;
@@ -130,10 +130,24 @@ export const App: React.FC<AppProps> = ({ engine, providerName, modelName, initi
 
         case 'model': {
           if (!args) {
-            setMessages(prev => [...prev, {
-              role: 'system',
-              text: `当前: ${activeProviderName} / ${activeModelName}\n可用 provider: ${getAllProviderNames(config).join(', ')}\n用法: /model <provider> [model]`,
-            }]);
+            const lines = [`当前: ${activeProviderName} / ${activeModelName}`, '', '可用 Provider:'];
+            for (const name of getAllProviderNames(config)) {
+              const preset = PRESETS[name];
+              const custom = config.providers[name];
+              const tag = isPreset(name) ? '内置' : '自定义';
+              const model = custom?.model ?? preset?.model ?? '';
+              const baseURL = custom?.baseURL ?? preset?.baseURL ?? '(默认)';
+              const type = custom?.type ?? preset?.type ?? '';
+              const active = name === activeProviderName ? ' <-- 当前' : '';
+              lines.push(`  ${name} ${active}`);
+              lines.push(`    类型: ${type} [${tag}]`);
+              if (baseURL !== '(默认)' || !isPreset(name)) lines.push(`    URL: ${baseURL}`);
+              lines.push(`    模型: ${model}`);
+              if (custom?.thinkingEffort) lines.push(`    thinking: ${custom.thinkingEffort}`);
+            }
+            lines.push('', '用法: /model <provider> [model]');
+            lines.push('配置: /config');
+            setMessages(prev => [...prev, { role: 'system', text: lines.join('\n') }]);
             return;
           }
           const parts = args.trim().split(/\s+/);

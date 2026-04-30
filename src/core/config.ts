@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
+import { createRequire } from 'module';
 import dotenv from 'dotenv';
 import type { ProviderConfig } from '../providers/types.js';
 import { PRESETS } from '../providers/index.js';
@@ -29,7 +30,29 @@ const DEFAULT_CONFIG: SlothConfig = {
   providers: {},
 };
 
+export async function ensureExampleConfig(): Promise<void> {
+  const dir = path.join(os.homedir(), '.sloth');
+  const examplePath = path.join(dir, 'configEx.json');
+  try {
+    await fs.access(examplePath);
+    return; // already exists
+  } catch {
+    // copy from bundled example
+    const require = createRequire(import.meta.url);
+    const bundled = path.join(path.dirname(require.resolve('../../package.json')), 'configEx.json');
+    let content: string;
+    try {
+      content = await fs.readFile(bundled, 'utf-8');
+    } catch {
+      content = JSON.stringify(DEFAULT_CONFIG, null, 2);
+    }
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(examplePath, content, 'utf-8');
+  }
+}
+
 export async function loadConfig(configPath?: string): Promise<SlothConfig> {
+  await ensureExampleConfig();
   const filePath = configPath ?? path.join(os.homedir(), '.sloth', 'config.json');
   try {
     const content = await fs.readFile(filePath, 'utf-8');

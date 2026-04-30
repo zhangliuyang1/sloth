@@ -1,6 +1,6 @@
 {
   "name": "sloth-cc",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "A Claude Code-like CLI programming assistant with multi-model support (GLM, DeepSeek, Qwen, Doubao, etc.)",
   "type": "module",
   "main": "dist/index.js",
@@ -8,7 +8,8 @@
     "sloth": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "configEx.json"
   ],
   "keywords": [
     "cli",

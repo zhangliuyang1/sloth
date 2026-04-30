@@ -1,0 +1,33 @@
+{
+  "provider": "glm",
+  "thinkingEffort": "medium",
+  "providers": {
+    "glm": {
+      "apiKey": "在这里填入你的智谱API Key，或通过环境变量 GLM_API_KEY 设置"
+    },
+    "deepseek": {
+      "apiKey": "在这里填入你的DeepSeek API Key，或通过环境变量 DEEPSEEK_API_KEY 设置"
+    },
+    "qwen": {
+      "apiKey": "在这里填入你的通义千问 API Key，或通过环境变量 QWEN_API_KEY 设置"
+    },
+    "doubao": {
+      "apiKey": "在这里填入你的豆包 API Key，或通过环境变量 DOUBAO_API_KEY 设置"
+    },
+    "mimo": {
+      "apiKey": "在这里填入你的小米 MiMo API Key，或通过环境变量 MIMO_API_KEY 设置"
+    },
+    "anthropic": {
+      "apiKey": "在这里填入你的 Anthropic API Key，或通过环境变量 ANTHROPIC_API_KEY 设置"
+    },
+    "openai": {
+      "apiKey": "在这里填入你的 OpenAI API Key，或通过环境变量 OPENAI_API_KEY 设置"
+    },
+    "my-custom-provider": {
+      "type": "openai-compat",
+      "baseURL": "https://your-api-endpoint.example.com/v1",
+      "model": "your-model-name",
+      "apiKey": "your-api-key"
+    }
+  }
+}
