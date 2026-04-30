@@ -27,7 +27,12 @@ Options:
   --provider, -p <name>   Provider (glm, deepseek, qwen, doubao, mimo, anthropic, openai)
   --model, -m <model>     Model name override
   --prompt <text>         Run a single prompt and exit (non-interactive)
+  --version, -v           Show version
   --help, -h              Show this help`);
+      process.exit(0);
+    } else if (args[i] === '--version' || args[i] === '-v') {
+      const pkg = await import('../package.json', { assert: { type: 'json' } });
+      console.log(`sloth-cc v${pkg.default.version}`);
       process.exit(0);
     }
   }
