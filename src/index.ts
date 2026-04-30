@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { createRequire } from 'module';
 import { startREPL } from './cli/repl.js';
 import { loadConfig, resolveApiKey } from './core/config.js';
 import { createProvider } from './providers/index.js';
@@ -31,8 +32,9 @@ Options:
   --help, -h              Show this help`);
       process.exit(0);
     } else if (args[i] === '--version' || args[i] === '-v') {
-      const pkg = await import('../package.json', { assert: { type: 'json' } });
-      console.log(`sloth-cc v${pkg.default.version}`);
+      const require = createRequire(import.meta.url);
+      const pkg = require('../package.json');
+      console.log(`sloth-cc v${pkg.version}`);
       process.exit(0);
     }
   }
