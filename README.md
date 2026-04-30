@@ -102,20 +102,21 @@ sloth --prompt "解释这段代码"  # 非交互模式，单次问答
 
 配置文件位置：`~/.sloth/config.json`
 
+配置优先级（从高到低）：CLI 参数 > `/model` 运行时切换 > `config.json` 中 provider 级别配置 > 全局配置 > 内置 preset 默认值
+
 ### 方式一：交互式配置（推荐）
 
-在 REPL 中输入 `/config`，按引导操作：
+在 REPL 中输入 `/config`，进入交互式配置界面。所有操作实时保存到 `~/.sloth/config.json`。
 
-```
-/config
-  选择操作:
-    1. 添加自定义 provider
-    2. 编辑 provider 配置
-    3. 删除自定义 provider
-    4. 切换默认 provider
-    5. 设置 thinking effort
-    6. 查看当前配置
-```
+支持的操作：
+1. **添加自定义 provider** — 依次输入名称、API 类型（anthropic/openai-compat）、API 地址、模型名称、API Key（可选）、thinking effort（可选）
+2. **编辑 provider 配置** — 选择已有 provider，修改任意字段
+3. **删除自定义 provider** — 移除自定义的 provider（内置 provider 不可删除）
+4. **切换默认 provider** — 设置启动时使用的 provider
+5. **设置 thinking effort** — 全局设置思考强度
+6. **查看当前配置** — 显示完整配置信息
+
+按 `ESC` 返回上级菜单，在主菜单按 `q` 退出配置。
 
 ### 方式二：编辑配置文件
 
@@ -170,9 +171,10 @@ sloth --prompt "解释这段代码"  # 非交互模式，单次问答
 无需重启，在对话中直接切换：
 
 ```
-/model                    # 查看当前模型和可用 provider
+/model                    # 查看所有 provider 配置详情（类型、地址、模型、thinking effort、是否激活）
 /model deepseek           # 切换到 deepseek
 /model glm glm-4-plus     # 切换到 glm 并指定模型
+/model my-custom          # 切换到自定义 provider
 ```
 
 ### Thinking Effort
@@ -192,15 +194,19 @@ sloth --prompt "解释这段代码"  # 非交互模式，单次问答
 
 ### 内置 Provider
 
-| 供应商 | 环境变量 | 默认模型 |
-|--------|---------|---------|
-| GLM（默认） | `GLM_API_KEY` | glm-5.1 |
-| DeepSeek | `DEEPSEEK_API_KEY` | deepseek-v4-pro |
-| Qwen | `QWEN_API_KEY` | qwen3-coder-480b-a35b-instruct |
-| Doubao | `DOUBAO_API_KEY` | doubao-seed-code |
-| MiMo | `MIMO_API_KEY` | mimo-v2.5-pro |
-| Anthropic | `ANTHROPIC_API_KEY` | claude-sonnet-4-20250514 |
-| OpenAI | `OPENAI_API_KEY` | gpt-4o |
+首次运行时，Sloth 会在 `~/.sloth/` 目录下自动生成示例配置文件 `configEx.json`，包含所有内置 provider 的配置模板，供参考。
+
+| 供应商 | 环境变量 | API 类型 | 默认模型 |
+|--------|---------|---------|---------|
+| GLM（默认） | `GLM_API_KEY` | anthropic | glm-5.1 |
+| DeepSeek | `DEEPSEEK_API_KEY` | openai-compat | deepseek-v4-pro |
+| Qwen | `QWEN_API_KEY` | openai-compat | qwen3.6-plus |
+| Doubao | `DOUBAO_API_KEY` | openai-compat | doubao-seed-2-0-pro-260215 |
+| MiMo | `MIMO_API_KEY` | openai-compat | mimo-v2.5-pro |
+| Anthropic | `ANTHROPIC_API_KEY` | anthropic | claude-sonnet-4-20250514 |
+| OpenAI | `OPENAI_API_KEY` | openai-compat | gpt-4o |
+
+内置 provider 无需手动配置 `type` 和 `baseURL`，只需设置 API Key 即可使用。如需覆盖默认模型或添加自定义 provider，请参考上方「模型配置」章节。
 
 ## CLI 参数
 
