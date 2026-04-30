@@ -1,11 +1,37 @@
 {
-  "name": "sloth",
+  "name": "sloth-cli",
   "version": "0.1.0",
-  "description": "A Claude Code-like CLI programming assistant with multi-model support",
+  "description": "A Claude Code-like CLI programming assistant with multi-model support (GLM, DeepSeek, Qwen, Doubao, etc.)",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "sloth": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "cli",
+    "ai",
+    "coding-assistant",
+    "llm",
+    "glm",
+    "deepseek",
+    "qwen",
+    "chatgpt"
+  ],
+  "author": "zhangliuyang1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangliuyang1/sloth.git"
+  },
+  "bugs": {
+    "url": "https://github.com/zhangliuyang1/sloth/issues"
+  },
+  "homepage": "https://github.com/zhangliuyang1/sloth#readme",
+  "engines": {
+    "node": ">=18"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
