@@ -1,5 +1,5 @@
 {
-  "name": "sloth-cli",
+  "name": "sloth-cc",
   "version": "0.1.0",
   "description": "A Claude Code-like CLI programming assistant with multi-model support (GLM, DeepSeek, Qwen, Doubao, etc.)",
   "type": "module",
