@@ -1,7 +1,7 @@
 import type { ProviderConfig } from '../types.js';
 
 export const deepseekPreset: ProviderConfig = {
-  type: 'openai-compat',
-  baseURL: 'https://api.deepseek.com/v1',
+  type: 'anthropic',
+  baseURL: 'https://api.deepseek.com/anthropic',
   model: 'deepseek-v4-pro',
 };

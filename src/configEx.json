@@ -6,7 +6,8 @@
       "apiKey": "在这里填入你的智谱API Key，或通过环境变量 GLM_API_KEY 设置"
     },
     "deepseek": {
-      "apiKey": "在这里填入你的DeepSeek API Key，或通过环境变量 DEEPSEEK_API_KEY 设置"
+      "apiKey": "在这里填入你的DeepSeek API Key，或通过环境变量 DEEPSEEK_API_KEY 设置",
+      "model": "deepseek-v4-pro"
     },
     "qwen": {
       "apiKey": "在这里填入你的通义千问 API Key，或通过环境变量 QWEN_API_KEY 设置"

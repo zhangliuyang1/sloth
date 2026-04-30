@@ -199,7 +199,7 @@ sloth --prompt "解释这段代码"  # 非交互模式，单次问答
 | 供应商 | 环境变量 | API 类型 | 默认模型 |
 |--------|---------|---------|---------|
 | GLM（默认） | `GLM_API_KEY` | anthropic | glm-5.1 |
-| DeepSeek | `DEEPSEEK_API_KEY` | openai-compat | deepseek-v4-pro |
+| DeepSeek | `DEEPSEEK_API_KEY` | anthropic | deepseek-v4-pro |
 | Qwen | `QWEN_API_KEY` | openai-compat | qwen3.6-plus |
 | Doubao | `DOUBAO_API_KEY` | openai-compat | doubao-seed-2-0-pro-260215 |
 | MiMo | `MIMO_API_KEY` | openai-compat | mimo-v2.5-pro |
